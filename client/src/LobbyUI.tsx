@@ -189,6 +189,12 @@ export const LobbyUI: FC<LobbyUIProps> = ({
   const startSolo = () => onStartSolo(selectedCharacter, newGamePlus);
 
   const handleGoogleLogin = async () => {
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isLocalHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+    if (isMobileDevice && isLocalHost) {
+      setAuthError("Abre el juego desde su URL pública de Render en el teléfono. localhost solo funciona en el dispositivo que ejecuta el servidor.");
+      return;
+    }
     if (!supabase) {
       setAuthError("Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en client/.env.local.");
       return;

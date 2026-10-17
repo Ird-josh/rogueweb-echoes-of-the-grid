@@ -34,6 +34,8 @@ Roguelike web client with an Express API, Supabase Auth/PostgreSQL, and Socket.I
 
    The API health check is `http://localhost:3000/api/health`.
 
+For Google sign-in on a phone, open the public Render client URL rather than `localhost`. A phone's `localhost` points to the phone itself, not the computer running the development server, so the OAuth return cannot reach a desktop's local Vite server.
+
 The API validates Supabase access tokens, persists completed runs for signed-in players, and restricts the telemetry dashboard to `TELEMETRY_ADMIN_EMAILS`. The database tables have row-level security enabled and direct access revoked from Supabase's `anon` and `authenticated` roles; server queries use the private PostgreSQL connection string.
 
 Lobby codes are six characters. Each lobby has a 3–32 character name, a 6–128 character password, and a maximum of three players. The server stores salted scrypt password hashes, never plaintext lobby passwords. Lobby membership and ready state are stored in PostgreSQL and broadcast through Socket.IO. During co-op runs, the lobby host is authoritative: the host simulates the shared rooms, enemies, bosses, projectiles, drops, pickups, and floor progression, then relays snapshots to the other players. Players send movement and combat inputs to the host, and each character's gamertag is drawn above its sprite. The host must remain connected; if it disconnects, the shared run cannot continue. This client-hosted simulation is intended for cooperative play, not anti-cheat enforcement. Run telemetry is client-reported and is intended for game history. The history starts empty and shows only real saved runs.

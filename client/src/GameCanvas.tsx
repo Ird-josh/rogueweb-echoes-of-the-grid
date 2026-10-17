@@ -620,7 +620,12 @@ export const GameCanvas: FC<GameCanvasProps> = ({
   onRunComplete,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const gameRootRef = useRef<HTMLDivElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isLandscapeMobile, setIsLandscapeMobile] = useState(false);
+  const [showTouchControls, setShowTouchControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
   const [orientationLockFailed, setOrientationLockFailed] = useState(false);
   const [isDead, setIsDead] = useState(false);
@@ -1485,6 +1490,36 @@ export const GameCanvas: FC<GameCanvasProps> = ({
     if (!pointers?.size) touchKeys.current.delete(key);
   };
 
+  const toggleFullscreen = async () => {
+    setFullscreenError(null);
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+
+      const root = gameRootRef.current;
+      if (!root?.requestFullscreen) {
+        setFullscreenError("Este navegador no permite pantalla completa desde el juego.");
+        return;
+      }
+
+      await root.requestFullscreen();
+      if (isMobile) {
+        const locked = await requestLandscapeOrientation();
+        setOrientationLockFailed(!locked);
+      }
+    } catch {
+      setFullscreenError("No se pudo activar pantalla completa. Prueba el menú del navegador.");
+    }
+  };
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
+
   useEffect(() => {
     if (!isMobile || isDead || settingsOpen) {
       touchKeys.current.clear();
@@ -1530,6 +1565,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
     const checkMobile = () => {
       const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       setIsMobile(isMobileUA || window.innerWidth <= 768);
+      setIsLandscapeMobile(window.innerWidth > window.innerHeight);
     };
     checkMobile();
 
@@ -2826,7 +2862,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
     }),
     { minX: 0, maxX: 0, minY: 0, maxY: 0 }
   );
-  const mapCellSize = isMobile ? 15 : 19;
+  const mapCellSize = isMobile ? 12 : 19;
   const mapCells = Array.from(
     { length: mapBounds.maxY - mapBounds.minY + 1 },
     (_, row) =>
@@ -2837,9 +2873,13 @@ export const GameCanvas: FC<GameCanvasProps> = ({
         ) ?? null
       )
   );
+  const touchButtonSize = isMobile ? "clamp(38px, 8vmin, 50px)" : "54px";
+  const topHudButtonStyle = isMobile
+    ? { ...hudBtnStyle, padding: "6px 8px", fontSize: "10px" }
+    : hudBtnStyle;
 
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden", backgroundColor: "#060203" }}>
+    <div ref={gameRootRef} style={{ position: "fixed", inset: 0, overflow: "hidden", backgroundColor: "#060203" }}>
       <canvas
         ref={canvasRef}
         data-testid="game-canvas"
@@ -2872,19 +2912,20 @@ export const GameCanvas: FC<GameCanvasProps> = ({
           left: isMobile ? 8 : 14,
           right: isMobile ? 8 : 14,
           display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          gap: isMobile ? 8 : 0,
+          flexDirection: "row",
+          flexWrap: isMobile ? "wrap" : "nowrap",
+          gap: isMobile ? 4 : 0,
           justifyContent: "space-between",
           alignItems: "flex-start",
           pointerEvents: "none",
           fontFamily: "'Courier New', Courier, monospace",
         }}
       >
-        <div style={{ display: "flex", gap: isMobile ? "4px" : "10px", pointerEvents: "auto" }}>
-          <button onClick={onBackToMenu} style={hudBtnStyle}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? "4px" : "10px", pointerEvents: "auto" }}>
+          <button onClick={onBackToMenu} style={topHudButtonStyle}>
             ◀ MENÚ
           </button>
-          <button onClick={onOpenSettings} style={hudBtnStyle}>
+          <button onClick={onOpenSettings} style={topHudButtonStyle}>
             ⚙ AJUSTES
           </button>
           {!isMobile && (
@@ -2901,15 +2942,37 @@ export const GameCanvas: FC<GameCanvasProps> = ({
               {selectedCharacter.abilityName.toUpperCase()} [{settings.controls.ability.toUpperCase()}]
             </button>
           )}
-          <button onClick={() => setIsMobile((m) => !m)} style={hudBtnStyle}>
-            📱 {isMobile ? "Ocultar Controles" : "Modo Móvil"}
-          </button>
+          {isMobile && (
+            <>
+              <button aria-label={isFullscreen ? "Salir de pantalla completa" : "Activar pantalla completa"} onClick={toggleFullscreen} style={topHudButtonStyle}>
+                {isFullscreen ? "⛶ SALIR" : "⛶ PANTALLA"}
+              </button>
+              <button onClick={() => setShowTouchControls((visible) => !visible)} style={topHudButtonStyle}>
+                {showTouchControls ? "− CONTROLES" : "+ CONTROLES"}
+              </button>
+            </>
+          )}
+          {!isMobile && (
+            <button onClick={() => setIsMobile(true)} style={hudBtnStyle}>
+              📱 MODO MÓVIL
+            </button>
+          )}
+          {fullscreenError && (
+            <span role="status" style={{ color: "#fecaca", fontSize: 11, alignSelf: "center", pointerEvents: "auto" }}>
+              {fullscreenError}
+            </span>
+          )}
+          {isMobile && orientationLockFailed && isPortraitMobile && !fullscreenError && (
+            <span role="status" style={{ color: "#fecaca", fontSize: 11, alignSelf: "center", pointerEvents: "auto" }}>
+              Gira el teléfono para jugar en horizontal.
+            </span>
+          )}
         </div>
 
         <div
           style={{
             position: isMobile ? "absolute" : "static",
-            top: isMobile ? 54 : undefined,
+            top: isMobile ? 48 : undefined,
             left: isMobile ? 0 : undefined,
             background: "rgba(15, 3, 5, 0.94)",
             border: "2px solid #dc2626",
@@ -2917,8 +2980,8 @@ export const GameCanvas: FC<GameCanvasProps> = ({
             color: "#ffffff",
             display: isMobile ? "grid" : "flex",
             gridTemplateColumns: isMobile ? "repeat(2, max-content)" : undefined,
-            gap: isMobile ? "4px 10px" : "18px",
-            fontSize: isMobile ? "10px" : "13px",
+            gap: isMobile ? "2px 7px" : "18px",
+            fontSize: isMobile ? "9px" : "13px",
             fontWeight: "bold",
             boxShadow: "0 0 20px rgba(220, 38, 38, 0.35)",
           }}
@@ -2927,22 +2990,22 @@ export const GameCanvas: FC<GameCanvasProps> = ({
           <span style={{ color: "#f87171" }}>ACTO: {hud.floor}</span>
           <span style={{ color: "#ef4444" }}>🔥 PODER: {hud.damage}</span>
           <span style={{ color: "#ffe071" }}>MONEDAS: {hud.coins}</span>
-          <span style={{ color: selectedCharacter.palette.E }}>ARMA: {WEAPONS.find((weapon) => weapon.id === hud.weaponId)?.name}</span>
-          <span style={{ color: "#7ae582" }}>MEJORAS: {hud.relics.length}</span>
-          <span style={{ color: "#fca5a5" }}>BAJAS: {hud.kills}</span>
-          <span style={{ color: "#cbd5e1" }}>{selectedCharacter.name} · {lobbyId || "SOLO"}{newGamePlus ? " · NG+" : ""}</span>
+          <span style={{ display: isMobile ? "none" : undefined, color: selectedCharacter.palette.E }}>ARMA: {WEAPONS.find((weapon) => weapon.id === hud.weaponId)?.name}</span>
+          <span style={{ display: isMobile ? "none" : undefined, color: "#7ae582" }}>MEJORAS: {hud.relics.length}</span>
+          <span style={{ display: isMobile ? "none" : undefined, color: "#fca5a5" }}>BAJAS: {hud.kills}</span>
+          <span style={{ display: isMobile ? "none" : undefined, color: "#cbd5e1" }}>{selectedCharacter.name} · {lobbyId || "SOLO"}{newGamePlus ? " · NG+" : ""}</span>
         </div>
 
         {/* Minimapa de la Catedral */}
         <div
           style={{
             position: isMobile ? "absolute" : "static",
-            top: 0,
+            top: isMobile ? 48 : 0,
             right: 0,
             background: "rgba(10, 2, 4, 0.92)",
             border: "2px solid #991b1b",
             padding: isMobile ? "5px" : "8px",
-            display: "grid",
+            display: isMobile && isLandscapeMobile ? "none" : "grid",
             gridTemplateColumns: `repeat(${mapBounds.maxX - mapBounds.minX + 1}, ${mapCellSize}px)`,
             gridTemplateRows: `repeat(${mapBounds.maxY - mapBounds.minY + 1}, ${mapCellSize}px)`,
             gap: "2px",
@@ -3142,6 +3205,9 @@ export const GameCanvas: FC<GameCanvasProps> = ({
               <p style={{ color: "#fca5a5", fontSize: 13 }}>
                 Este navegador no pudo cambiar la orientación automáticamente.
               </p>
+              <button type="button" onClick={toggleFullscreen} style={topHudButtonStyle}>
+                {isFullscreen ? "SALIR DE PANTALLA COMPLETA" : "PANTALLA COMPLETA"}
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -3149,7 +3215,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
                     setOrientationLockFailed(!locked);
                   });
                 }}
-                style={hudBtnStyle}
+                style={topHudButtonStyle}
               >
                 INTENTAR DE NUEVO
               </button>
@@ -3159,14 +3225,20 @@ export const GameCanvas: FC<GameCanvasProps> = ({
       )}
 
       {/* Controles Táctiles para Móvil */}
-      {isMobile && !isDead && !hasWon && (
+      {isMobile && showTouchControls && !isDead && !hasWon && (
         <>
           <button
             type="button"
             aria-label={`Usar bomba; quedan ${hud.rosaries}`}
             onClick={dropRosaryBomb}
             disabled={hud.rosaries <= 0}
-            style={bombPadStyle}
+            style={{
+              ...bombPadStyle,
+              right: 12,
+              ...(isLandscapeMobile
+                ? { top: 48, bottom: "auto" }
+                : { bottom: "max(170px, calc(env(safe-area-inset-bottom) + 170px))" }),
+            }}
           >
             BOMBA × {hud.rosaries}
           </button>
@@ -3175,19 +3247,28 @@ export const GameCanvas: FC<GameCanvasProps> = ({
             aria-label={`Usar habilidad: ${selectedCharacter.abilityName}`}
             onClick={activateCharacterAbility}
             disabled={!abilityAvailable}
-            style={{ ...bombPadStyle, right: 24, bottom: 254, borderColor: selectedCharacter.palette.E, background: "#25203b", opacity: abilityAvailable ? 1 : 0.55 }}
+            style={{
+              ...bombPadStyle,
+              right: 12,
+              ...(isLandscapeMobile
+                ? { top: 96, bottom: "auto" }
+                : { bottom: "max(218px, calc(env(safe-area-inset-bottom) + 218px))" }),
+              borderColor: selectedCharacter.palette.E,
+              background: "#25203b",
+              opacity: abilityAvailable ? 1 : 0.55,
+            }}
           >
             {selectedCharacter.abilityName.toUpperCase()}
           </button>
           <div
             style={{
               position: "absolute",
-              bottom: 24,
-              left: 24,
+              bottom: "max(12px, env(safe-area-inset-bottom))",
+              left: "max(12px, env(safe-area-inset-left))",
               display: "grid",
-              gridTemplateColumns: "repeat(3, 54px)",
-              gridTemplateRows: "repeat(3, 54px)",
-              gap: "5px",
+              gridTemplateColumns: `repeat(3, ${touchButtonSize})`,
+              gridTemplateRows: `repeat(3, ${touchButtonSize})`,
+              gap: isMobile ? "3px" : "5px",
               zIndex: 100,
             }}
           >
@@ -3237,12 +3318,12 @@ export const GameCanvas: FC<GameCanvasProps> = ({
           <div
             style={{
               position: "absolute",
-              bottom: 24,
-              right: 24,
+                bottom: "max(12px, env(safe-area-inset-bottom))",
+                right: "max(12px, env(safe-area-inset-right))",
               display: "grid",
-              gridTemplateColumns: "repeat(3, 54px)",
-              gridTemplateRows: "repeat(3, 54px)",
-              gap: "5px",
+                gridTemplateColumns: `repeat(3, ${touchButtonSize})`,
+                gridTemplateRows: `repeat(3, ${touchButtonSize})`,
+                gap: isMobile ? "3px" : "5px",
               zIndex: 100,
             }}
           >
