@@ -40,7 +40,7 @@ Lobby codes are six characters. Each lobby has a 3–32 character name, a 6–12
 
 ## Deploy publicly with Render
 
-The root `render.yaml` defines the Node API/Socket.IO server and the Vite static client. From the Render dashboard, create a Blueprint connected to the GitHub repository and select the `feature/frontend-canvas` branch. Keep both services in the same Blueprint so Render can wire the client API URL and server CORS origin automatically.
+The root `render.yaml` defines the Node API/Socket.IO server and the Vite static client. From the Render dashboard, create a Blueprint connected to the GitHub repository and select the `main` branch. Keep both services in the same Blueprint so Render can wire the client API URL and server CORS origin automatically.
 
 When Render prompts for environment variables, use the values from your private local files:
 
