@@ -191,18 +191,19 @@ export const LobbyUI: FC<LobbyUIProps> = ({
   const handleGoogleLogin = async () => {
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isLocalHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
-    if (isMobileDevice && isLocalHost) {
-      setAuthError("Abre el juego desde su URL pública de Render en el teléfono. localhost solo funciona en el dispositivo que ejecuta el servidor.");
-      return;
-    }
     if (!supabase) {
       setAuthError("Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en client/.env.local.");
       return;
     }
     try {
+      const redirectTo =
+        import.meta.env.VITE_AUTH_REDIRECT_URL?.trim() ||
+        (isMobileDevice && isLocalHost
+          ? "https://rogueweb-echoes-grid.onrender.com"
+          : window.location.origin);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo },
       });
       if (error) setAuthError(`No se pudo iniciar sesión: ${error.message}`);
     } catch (error) {

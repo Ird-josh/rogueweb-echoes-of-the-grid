@@ -30,6 +30,8 @@ services:
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
+      - key: VITE_AUTH_REDIRECT_URL
+        value: https://rogueweb-echoes-grid.onrender.com
       - key: VITE_API_URL
         fromService:
           type: web
