@@ -1,105 +1,249 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
-const GameCanvas = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const playerPos = useRef({ x: 0, y: 0 });
+const TILE_SIZE = 48;
+
+interface GameCanvasProps {
+  onBackToMenu: () => void;
+  lobbyId?: string | null;
+}
+
+export const GameCanvas: React.FC<GameCanvasProps> = ({ onBackToMenu, lobbyId }) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const gridSize = 32;
+  const [stats, setStats] = useState({ hp: 100, maxHp: 100, level: 1, xp: 0, gold: 15 });
 
-  useEffect(() => {
-    setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  }, []);
+  // Coordenadas del jugador en celdas de la cuadrícula (no píxeles sueltos)
+  const playerGrid = useRef({ col: 5, row: 5 });
 
-  // Global Keyboard controls mutating the ref directly
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      if (key === 'arrowup' || key === 'w') playerPos.current.y -= gridSize;
-      else if (key === 'arrowdown' || key === 's') playerPos.current.y += gridSize;
-      else if (key === 'arrowleft' || key === 'a') playerPos.current.x -= gridSize;
-      else if (key === 'arrowright' || key === 'd') playerPos.current.x += gridSize;
-    };
+  // Enemigos de prueba en la cuadrícula para que parezca un Roguelike real
+  const enemies = useRef([
+    { col: 8, row: 5, hp: 30 },
+    { col: 10, row: 8, hp: 30 },
+    { col: 4, row: 9, hp: 30 },
+  ]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Main render loop
-  useEffect(() => {
+  const movePlayer = (dCol: number, dRow: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    let animationFrameId: number;
+    const maxCols = Math.floor(canvas.width / TILE_SIZE);
+    const maxRows = Math.floor(canvas.height / TILE_SIZE);
 
-    const render = () => {
-      // Clear screen
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const nextCol = Math.max(1, Math.min(maxCols - 2, playerGrid.current.col + dCol));
+    const nextRow = Math.max(1, Math.min(maxRows - 2, playerGrid.current.row + dRow));
 
-      // Draw faint gray grid
-      ctx.strokeStyle = '#333';
-      const cellSize = 40;
-      for (let x = 0; x < canvas.width; x += cellSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
+    // Verificar si hay un enemigo en esa casilla (Combate por turnos estilo Roguelike)
+    const enemyIndex = enemies.current.findIndex(
+      (e) => e.col === nextCol && e.row === nextRow
+    );
+
+    if (enemyIndex !== -1) {
+      // Atacar al enemigo en vez de caminar encima
+      enemies.current[enemyIndex].hp -= 15;
+      if (enemies.current[enemyIndex].hp <= 0) {
+        enemies.current.splice(enemyIndex, 1);
+        setStats((s) => ({
+          ...s,
+          xp: s.xp + 25,
+          gold: s.gold + 10,
+          level: s.xp + 25 >= 50 ? s.level + 1 : s.level,
+        }));
       }
-      for (let y = 0; y < canvas.height; y += cellSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
+      return;
+    }
 
-      // Draw player at center + ref coordinates
-      const centerX = canvas.width / 2 - gridSize / 2;
-      const centerY = canvas.height / 2 - gridSize / 2;
+    playerGrid.current = { col: nextCol, row: nextRow };
+  };
 
-      ctx.fillStyle = 'red';
-      ctx.fillRect(
-        centerX + playerPos.current.x,
-        centerY + playerPos.current.y,
-        gridSize,
-        gridSize
-      );
-
-      animationFrameId = requestAnimationFrame(render);
+  useEffect(() => {
+    const checkMobile = () => {
+      const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+      setIsMobile(hasTouch || window.innerWidth <= 768);
     };
+    checkMobile();
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      checkMobile();
     };
 
-    window.addEventListener('resize', handleResize);
     handleResize();
+    window.addEventListener("resize", handleResize);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (key === "w" || key === "arrowup") movePlayer(0, -1);
+      else if (key === "s" || key === "arrowdown") movePlayer(0, 1);
+      else if (key === "a" || key === "arrowleft") movePlayer(-1, 0);
+      else if (key === "d" || key === "arrowright") movePlayer(1, 0);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    let animationFrameId: number;
+
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const maxCols = Math.floor(canvas.width / TILE_SIZE);
+      const maxRows = Math.floor(canvas.height / TILE_SIZE);
+
+      // 1. Fondo del calabozo
+      ctx.fillStyle = "#090d16";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Dibujar Cuadrícula y Muros perimetrales
+      for (let c = 0; c < maxCols; c++) {
+        for (let r = 0; r < maxRows; r++) {
+          const x = c * TILE_SIZE;
+          const y = r * TILE_SIZE;
+
+          const isWall = c === 0 || r === 0 || c === maxCols - 1 || r === maxRows - 1;
+
+          if (isWall) {
+            ctx.fillStyle = "#1e293b";
+            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            ctx.strokeStyle = "#334155";
+            ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+          } else {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+            ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      }
+
+      // 3. Dibujar Enemigos (Cuadros morados con ojos)
+      enemies.current.forEach((enemy) => {
+        const ex = enemy.col * TILE_SIZE;
+        const ey = enemy.row * TILE_SIZE;
+
+        ctx.fillStyle = "#9333ea";
+        ctx.fillRect(ex + 6, ey + 6, TILE_SIZE - 12, TILE_SIZE - 12);
+        ctx.strokeStyle = "#f3e8ff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(ex + 6, ey + 6, TILE_SIZE - 12, TILE_SIZE - 12);
+      });
+
+      // 4. Dibujar al Jugador (Héroe Rojo de 48x48 con borde blanco)
+      const px = playerGrid.current.col * TILE_SIZE;
+      const py = playerGrid.current.row * TILE_SIZE;
+
+      ctx.fillStyle = "#e11d48";
+      ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
     render();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("keydown", handleKeyDown);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
-  const move = (dx: number, dy: number) => {
-    playerPos.current.x += dx * gridSize;
-    playerPos.current.y += dy * gridSize;
-  };
-
   return (
-    <>
-      <canvas ref={canvasRef} style={{ display: 'block', position: 'absolute', top: 0, left: 0 }} />
+    <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
+      <canvas ref={canvasRef} style={{ display: "block" }} />
+
+      {/* HUD Superior estilo Final Fantasy */}
+      <div
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          right: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          pointerEvents: "none",
+        }}
+      >
+        <button
+          onClick={onBackToMenu}
+          style={{
+            pointerEvents: "auto",
+            padding: "10px 18px",
+            background: "linear-gradient(to bottom, #001890, #000040)",
+            color: "#ffffff",
+            border: "3px solid #ffffff",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "14px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.7)",
+          }}
+        >
+          ◀ MENÚ
+        </button>
+
+        <div
+          style={{
+            background: "linear-gradient(to bottom, #001890, #000040)",
+            border: "3px solid #ffffff",
+            borderRadius: "6px",
+            padding: "8px 16px",
+            color: "#ffffff",
+            display: "flex",
+            gap: "20px",
+            fontSize: "14px",
+            fontWeight: "bold",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.7)",
+          }}
+        >
+          <span>SALA: {lobbyId ? lobbyId : "SOLITARIO"}</span>
+          <span style={{ color: "#4ade80" }}>HP: {stats.hp}/{stats.maxHp}</span>
+          <span style={{ color: "#facc15" }}>NV: {stats.level}</span>
+          <span style={{ color: "#38bdf8" }}>EXP: {stats.xp}</span>
+        </div>
+      </div>
+
+      {/* Controles Táctiles en Pantalla (Se activan en vista móvil o pantallas chicas) */}
       {isMobile && (
-        <div style={{ position: 'absolute', bottom: 20, left: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 50px)', gap: 5 }}>
-          <div /> <button onClick={() => move(0, -1)}>U</button> <div />
-          <button onClick={() => move(-1, 0)}>L</button> <button onClick={() => move(0, 1)}>D</button> <button onClick={() => move(1, 0)}>R</button>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 30,
+            left: 30,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 60px)",
+            gridTemplateRows: "repeat(3, 60px)",
+            gap: "6px",
+            zIndex: 100,
+          }}
+        >
+          <div />
+          <button onClick={() => movePlayer(0, -1)} style={dPadStyle}>▲</button>
+          <div />
+          <button onClick={() => movePlayer(-1, 0)} style={dPadStyle}>◀</button>
+          <div />
+          <button onClick={() => movePlayer(1, 0)} style={dPadStyle}>▶</button>
+          <div />
+          <button onClick={() => movePlayer(0, 1)} style={dPadStyle}>▼</button>
+          <div />
         </div>
       )}
-    </>
+    </div>
   );
 };
 
-export default GameCanvas;
+const dPadStyle: React.CSSProperties = {
+  background: "linear-gradient(to bottom, #001890, #000040)",
+  color: "#ffffff",
+  border: "2px solid #ffffff",
+  borderRadius: "8px",
+  fontSize: "22px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
+};

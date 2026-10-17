@@ -1,25 +1,38 @@
-import { useState } from 'react';
-import GameCanvas from './GameCanvas';
-import LobbyUI from './LobbyUI';
-import TelemetryDashboard from './TelemetryDashboard';
-import './App.css';
+import { useState } from "react";
+import { GameCanvas } from "./GameCanvas";
+import { LobbyUI } from "./LobbyUI";
+import { TelemetryDashboard } from "./TelemetryDashboard";
 
-function App() {
-  const [isGameStarted, setIsGameStarted] = useState(false);
-  const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
+export default function App() {
+  const [inGame, setInGame] = useState(false);
+  const [lobbyId, setLobbyId] = useState<string | null>(null);
+  const [showTelemetry, setShowTelemetry] = useState(false);
 
   return (
-    <>
-      {isTelemetryOpen && <TelemetryDashboard onClose={() => setIsTelemetryOpen(false)} />}
-      {!isGameStarted && !isTelemetryOpen && (
-        <LobbyUI 
-          onStart={() => setIsGameStarted(true)} 
-          onViewTelemetry={() => setIsTelemetryOpen(true)} 
+    <div style={{ width: "100vw", height: "100vh", overflow: "hidden", backgroundColor: "#000" }}>
+      {inGame ? (
+        <GameCanvas
+          lobbyId={lobbyId}
+          onBackToMenu={() => {
+            setInGame(false);
+            setLobbyId(null);
+          }}
+        />
+      ) : (
+        <LobbyUI
+          onStartSolo={() => {
+            setLobbyId(null);
+            setInGame(true);
+          }}
+          onJoinLobby={(id) => {
+            setLobbyId(id);
+            setInGame(true);
+          }}
+          onOpenTelemetry={() => setShowTelemetry(true)}
         />
       )}
-      {isGameStarted && <GameCanvas />}
-    </>
+
+      {showTelemetry && <TelemetryDashboard onClose={() => setShowTelemetry(false)} />}
+    </div>
   );
 }
-
-export default App;

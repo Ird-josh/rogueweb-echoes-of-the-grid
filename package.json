@@ -1,0 +1,32 @@
+{
+  "name": "rogueweb-echoes-of-the-grid",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ird-josh/rogueweb-echoes-of-the-grid.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ird-josh/rogueweb-echoes-of-the-grid/issues"
+  },
+  "homepage": "https://github.com/ird-josh/rogueweb-echoes-of-the-grid#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0",
+    "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
+    "pg": "^8.23.1",
+    "socket.io": "^4.8.4"
+  }
+}

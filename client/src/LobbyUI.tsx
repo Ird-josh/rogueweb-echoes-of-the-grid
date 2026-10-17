@@ -1,52 +1,148 @@
-import React from 'react';
+import React, { useState } from "react";
 
 interface LobbyUIProps {
-  onStart: () => void;
-  onViewTelemetry: () => void;
+  onStartSolo: () => void;
+  onJoinLobby: (lobbyId: string) => void;
+  onOpenTelemetry: () => void;
 }
 
-const LobbyUI: React.FC<LobbyUIProps> = ({ onStart, onViewTelemetry }) => {
+export const LobbyUI: React.FC<LobbyUIProps> = ({
+  onStartSolo,
+  onJoinLobby,
+  onOpenTelemetry,
+}) => {
+  const [lobbyInput, setLobbyInput] = useState("");
+  const [user, setUser] = useState<string | null>(null);
+
   return (
     <div
       style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        color: 'white',
-        zIndex: 1000,
-        gap: '2rem',
-        fontFamily: 'sans-serif',
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "radial-gradient(circle, #0f172a 0%, #020617 100%)",
       }}
     >
-      <h1>RogueWeb: Echoes of the Grid</h1>
+      <div
+        style={{
+          width: "92%",
+          maxWidth: "460px",
+          background: "linear-gradient(to bottom, #001890, #000035)",
+          border: "4px solid #ffffff",
+          borderRadius: "10px",
+          padding: "28px",
+          boxShadow: "0 0 25px rgba(0,0,0,0.9), inset 0 0 12px rgba(255,255,255,0.25)",
+          color: "#ffffff",
+          textAlign: "center",
+        }}
+      >
+        <h1 style={{ fontSize: "26px", marginBottom: "6px", textShadow: "2px 2px 0 #000" }}>
+          ⚔ ROGUEWEB ⚔
+        </h1>
+        <p style={{ fontSize: "13px", color: "#93c5fd", marginBottom: "22px", textShadow: "1px 1px 0 #000" }}>
+          ECHOES OF THE GRID — JRPG EDITION
+        </p>
 
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'center' }}>
-        <h3>Authentication</h3>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button onClick={() => alert('Signing in with Google...')}>Sign in with Google</button>
-          <button onClick={() => alert('Signing in with GitHub...')}>Sign in with GitHub</button>
+        {/* Bloque de Autenticación OAuth */}
+        <div
+          style={{
+            background: "rgba(0, 0, 0, 0.35)",
+            border: "2px solid rgba(255, 255, 255, 0.5)",
+            borderRadius: "6px",
+            padding: "12px",
+            marginBottom: "20px",
+          }}
+        >
+          <p style={{ fontSize: "12px", marginBottom: "10px", color: "#e2e8f0" }}>
+            {user ? `✅ Conectado como: ${user}` : "🔒 AUTENTICACIÓN OAUTH REQUERIDA"}
+          </p>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <button
+              onClick={() => setUser("Jugador_Google")}
+              style={oauthBtnStyle}
+            >
+              G Iniciar con Google
+            </button>
+            <button
+              onClick={() => setUser("Jugador_GitHub")}
+              style={oauthBtnStyle}
+            >
+              🐙 Iniciar con GitHub
+            </button>
+          </div>
         </div>
-      </section>
 
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-        <h3>Game Mode</h3>
-        <button onClick={onStart} style={{ padding: '0.5rem 2rem', fontSize: '1rem' }}>Play Solo</button>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input type="text" placeholder="Enter lobby code" />
-          <button onClick={onStart}>Join Public Lobby</button>
+        {/* Comandos Principales */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <button onClick={onStartSolo} style={ffButtonStyle}>
+            ▶ MODO SOLITARIO (CALABOZO)
+          </button>
+
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input
+              type="text"
+              placeholder="Ej: SALA-101"
+              value={lobbyInput}
+              onChange={(e) => setLobbyInput(e.target.value)}
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: "6px",
+                border: "2px solid #ffffff",
+                backgroundColor: "#000830",
+                color: "#ffffff",
+                fontFamily: "inherit",
+                fontSize: "14px",
+              }}
+            />
+            <button
+              onClick={() => onJoinLobby(lobbyInput.trim() || "PUBLIC-1")}
+              style={{ ...ffButtonStyle, padding: "10px 16px" }}
+            >
+              UNIRSE A LOBBY
+            </button>
+          </div>
+
+          <button
+            onClick={onOpenTelemetry}
+            style={{
+              ...ffButtonStyle,
+              background: "linear-gradient(to bottom, #065f46, #064e3b)",
+              marginTop: "6px",
+            }}
+          >
+            📊 TELEMETRÍA (+10,000 PARTIDAS)
+          </button>
         </div>
-      </section>
-      
-      <button onClick={onViewTelemetry} style={{ marginTop: '1rem' }}>View Telemetry</button>
+      </div>
     </div>
   );
 };
 
-export default LobbyUI;
+const ffButtonStyle: React.CSSProperties = {
+  padding: "12px",
+  background: "linear-gradient(to bottom, #0028b0, #001060)",
+  color: "#ffffff",
+  border: "2px solid #ffffff",
+  borderRadius: "6px",
+  fontSize: "14px",
+  fontWeight: "bold",
+  fontFamily: "inherit",
+  cursor: "pointer",
+  textShadow: "1px 1px 0 #000",
+  boxShadow: "0 3px 6px rgba(0,0,0,0.5)",
+};
+
+const oauthBtnStyle: React.CSSProperties = {
+  padding: "8px 12px",
+  backgroundColor: "#1e293b",
+  color: "#ffffff",
+  border: "1px solid #94a3b8",
+  borderRadius: "4px",
+  fontSize: "12px",
+  fontFamily: "inherit",
+  cursor: "pointer",
+};
