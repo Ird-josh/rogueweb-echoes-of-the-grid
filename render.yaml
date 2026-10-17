@@ -14,10 +14,7 @@ services:
       - key: SUPABASE_ANON_KEY
         sync: false
       - key: CLIENT_ORIGIN
-        fromService:
-          type: web
-          name: rogueweb-echoes-grid
-          property: host
+        value: https://rogueweb-echoes-grid.onrender.com
 
   - type: web
     name: rogueweb-echoes-grid
