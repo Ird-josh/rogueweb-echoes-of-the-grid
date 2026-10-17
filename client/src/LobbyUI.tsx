@@ -2,9 +2,10 @@ import React from 'react';
 
 interface LobbyUIProps {
   onStart: () => void;
+  onViewTelemetry: () => void;
 }
 
-const LobbyUI: React.FC<LobbyUIProps> = ({ onStart }) => {
+const LobbyUI: React.FC<LobbyUIProps> = ({ onStart, onViewTelemetry }) => {
   return (
     <div
       style={{
@@ -42,6 +43,8 @@ const LobbyUI: React.FC<LobbyUIProps> = ({ onStart }) => {
           <button onClick={onStart}>Join Public Lobby</button>
         </div>
       </section>
+      
+      <button onClick={onViewTelemetry} style={{ marginTop: '1rem' }}>View Telemetry</button>
     </div>
   );
 };
