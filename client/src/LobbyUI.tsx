@@ -188,7 +188,7 @@ export const LobbyUI: FC<LobbyUIProps> = ({
 
   const startSolo = () => onStartSolo(selectedCharacter, newGamePlus);
 
-  const handleGoogleLogin = async () => {
+  const handleOAuthLogin = async (provider: "google" | "github") => {
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isLocalHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
     if (!supabase) {
@@ -202,12 +202,16 @@ export const LobbyUI: FC<LobbyUIProps> = ({
           ? "https://rogueweb-echoes-grid.onrender.com"
           : window.location.origin);
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
+        provider,
         options: { redirectTo },
       });
-      if (error) setAuthError(`No se pudo iniciar sesión: ${error.message}`);
+      if (error) setAuthError(`No se pudo iniciar sesión con ${provider === "google" ? "Google" : "GitHub"}: ${error.message}`);
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "No se pudo iniciar sesión.");
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : `No se pudo iniciar sesión con ${provider === "google" ? "Google" : "GitHub"}.`,
+      );
     }
   };
 
@@ -253,7 +257,7 @@ export const LobbyUI: FC<LobbyUIProps> = ({
 
   const handleLobbyEntry = async () => {
     if (!user) {
-      setAuthError("Inicia sesión con Google para crear o unirte a un lobby.");
+      setAuthError("Inicia sesión con Google o GitHub para crear o unirte a un lobby.");
       return;
     }
 
@@ -326,7 +330,7 @@ export const LobbyUI: FC<LobbyUIProps> = ({
 
   const handleTelemetryClick = () => {
     if (!user) {
-      setAuthError("Inicia sesión con Google para abrir el historial de partidas.");
+      setAuthError("Inicia sesión con Google o GitHub para abrir el historial de partidas.");
       return;
     }
     setAuthError(null);
@@ -533,14 +537,22 @@ export const LobbyUI: FC<LobbyUIProps> = ({
           >
             {user ? `🩸 SESIÓN: ${user.name}` : "✟ INICIA SESIÓN PARA LOBBIES Y CRÓNICAS"}
           </p>
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "center" }}>
             <button
               data-testid="login-google"
               disabled={authLoading}
-              onClick={() => void handleGoogleLogin()}
+              onClick={() => void handleOAuthLogin("google")}
               style={oauthBtnStyle}
             >
               † Pacto Google
+            </button>
+            <button
+              data-testid="login-github"
+              disabled={authLoading}
+              onClick={() => void handleOAuthLogin("github")}
+              style={oauthBtnStyle}
+            >
+              † Pacto GitHub
             </button>
           </div>
           {user && (
