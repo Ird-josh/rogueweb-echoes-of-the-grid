@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: rogueweb-echoes-grid-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: CLIENT_ORIGIN
+        fromService:
+          type: web
+          name: rogueweb-echoes-grid
+          property: host
+
+  - type: static
+    name: rogueweb-echoes-grid
+    rootDir: client
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: rogueweb-echoes-grid-api
+          property: host
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
