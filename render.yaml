@@ -19,8 +19,9 @@ services:
           name: rogueweb-echoes-grid
           property: host
 
-  - type: static_site
+  - type: web
     name: rogueweb-echoes-grid
+    runtime: static
     rootDir: client
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
