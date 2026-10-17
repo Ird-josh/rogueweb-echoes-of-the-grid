@@ -49,9 +49,9 @@ When Render prompts for environment variables, use the values from your private 
 
 - API service: `DATABASE_URL`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY`.
 - Client service: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (the same Supabase project URL and anon/publishable key).
-- Optional client service: `VITE_GAME_MUSIC_URL` for a track you own or are licensed to publish. The local `client/public/audio/game-music.wav` file is intentionally git-ignored and is used only by the development server.
+- Optional client service: `VITE_GAME_MUSIC_URL` to override the bundled `client/public/audio/game-music.wav` soundtrack with a track you own or are licensed to publish. The bundled soundtrack plays in development and production; the audio is loaded on demand.
 
-Never enter the PostgreSQL password or a Supabase service-role key in a `VITE_` variable. The game's current 8-bit cover of a commercial song is not included in the public deployment; an 8-bit arrangement may still be a copyrighted derivative. The free Render web service may sleep when idle, so its first request and Socket.IO connection can take a little while to wake up.
+Never enter the PostgreSQL password or a Supabase service-role key in a `VITE_` variable. Only publish music you own or are licensed to distribute. The free Render web service may sleep when idle, so its first request and Socket.IO connection can take a little while to wake up.
 
 After Render publishes the static client, copy its `https://...onrender.com` URL into Supabase **Authentication → URL Configuration** as the Site URL and an allowed redirect URL. Also add that same public URL to the Redirect URLs allowlist; the static client's `VITE_AUTH_REDIRECT_URL` makes OAuth return to Render even when sign-in starts from localhost on a phone. Google and GitHub sign-in should each use the Supabase callback URL configured in that provider's settings. Render injects the client's host into the API's CORS allowlist and the API host into the client's build settings.
 

@@ -30,9 +30,7 @@ export default function App() {
     hostId: string | null;
   }>({ id: null, name: "Explorador", members: [], hostId: null });
   const musicRef = useRef<HTMLAudioElement | null>(null);
-  const musicSource = import.meta.env.DEV
-    ? "/audio/game-music.wav"
-    : import.meta.env.VITE_GAME_MUSIC_URL || undefined;
+  const musicSource = import.meta.env.VITE_GAME_MUSIC_URL || "/audio/game-music.wav";
 
   const saveCompletedRun = useCallback((run: {
     characterId: CharacterId;
