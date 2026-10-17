@@ -10,21 +10,34 @@ const GameCanvas = () => {
     setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
 
+  // Set focus on canvas on load
+  useEffect(() => {
+    if (canvasRef.current && !isMobile) {
+      canvasRef.current.focus();
+    }
+  }, [isMobile]);
+
+  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       setPlayerPos((prev) => {
         let { x, y } = prev;
-        if (e.key === 'ArrowUp' || e.key === 'w') y -= gridSize;
-        else if (e.key === 'ArrowDown' || e.key === 's') y += gridSize;
-        else if (e.key === 'ArrowLeft' || e.key === 'a') x -= gridSize;
-        else if (e.key === 'ArrowRight' || e.key === 'd') x += gridSize;
+        // Check for both cases (upper and lower)
+        const key = e.key.toLowerCase();
+        if (key === 'arrowup' || key === 'w') y -= gridSize;
+        else if (key === 'arrowdown' || key === 's') y += gridSize;
+        else if (key === 'arrowleft' || key === 'a') x -= gridSize;
+        else if (key === 'arrowright' || key === 'd') x += gridSize;
+        else return prev;
         return { x, y };
       });
     };
 
     if (!isMobile) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
+      // Attached to canvas to ensure focus-based events work
+      const canvas = canvasRef.current;
+      canvas?.addEventListener('keydown', handleKeyDown);
+      return () => canvas?.removeEventListener('keydown', handleKeyDown);
     }
   }, [isMobile]);
 
@@ -83,7 +96,11 @@ const GameCanvas = () => {
 
   return (
     <>
-      <canvas ref={canvasRef} style={{ display: 'block', position: 'absolute', top: 0, left: 0 }} />
+      <canvas 
+        ref={canvasRef} 
+        tabIndex={0}
+        style={{ display: 'block', position: 'absolute', top: 0, left: 0, outline: 'none' }} 
+      />
       {isMobile && (
         <div style={{ position: 'absolute', bottom: 20, left: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 50px)', gap: 5 }}>
           <div /> <button onClick={() => move(0, -1)}>U</button> <div />
