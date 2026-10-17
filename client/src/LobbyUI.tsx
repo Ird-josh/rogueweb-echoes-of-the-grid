@@ -13,6 +13,18 @@ export const LobbyUI: React.FC<LobbyUIProps> = ({
 }) => {
   const [lobbyInput, setLobbyInput] = useState("");
   const [user, setUser] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [joinedRoom, setJoinedRoom] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  const handleTelemetryClick = () => {
+    if (!user) {
+      setAuthError("⛔ Acceso denegado: Inicia sesión con Google o GitHub para ver la Telemetría.");
+      return;
+    }
+    setAuthError(null);
+    onOpenTelemetry();
+  };
 
   return (
     <div
@@ -29,7 +41,7 @@ export const LobbyUI: React.FC<LobbyUIProps> = ({
       <div
         style={{
           width: "92%",
-          maxWidth: "460px",
+          maxWidth: "480px",
           background: "linear-gradient(to bottom, #001890, #000035)",
           border: "4px solid #ffffff",
           borderRadius: "10px",
@@ -42,7 +54,7 @@ export const LobbyUI: React.FC<LobbyUIProps> = ({
         <h1 style={{ fontSize: "26px", marginBottom: "6px", textShadow: "2px 2px 0 #000" }}>
           ⚔ ROGUEWEB ⚔
         </h1>
-        <p style={{ fontSize: "13px", color: "#93c5fd", marginBottom: "22px", textShadow: "1px 1px 0 #000" }}>
+        <p style={{ fontSize: "13px", color: "#93c5fd", marginBottom: "20px", textShadow: "1px 1px 0 #000" }}>
           ECHOES OF THE GRID — JRPG EDITION
         </p>
 
@@ -53,70 +65,123 @@ export const LobbyUI: React.FC<LobbyUIProps> = ({
             border: "2px solid rgba(255, 255, 255, 0.5)",
             borderRadius: "6px",
             padding: "12px",
-            marginBottom: "20px",
+            marginBottom: "18px",
           }}
         >
-          <p style={{ fontSize: "12px", marginBottom: "10px", color: "#e2e8f0" }}>
+          <p data-testid="auth-status" style={{ fontSize: "12px", marginBottom: "10px", color: "#e2e8f0" }}>
             {user ? `✅ Conectado como: ${user}` : "🔒 AUTENTICACIÓN OAUTH REQUERIDA"}
           </p>
           <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
             <button
-              onClick={() => setUser("Jugador_Google")}
+              data-testid="login-google"
+              onClick={() => {
+                setUser("Jugador_Google");
+                setAuthError(null);
+              }}
               style={oauthBtnStyle}
             >
               G Iniciar con Google
             </button>
             <button
-              onClick={() => setUser("Jugador_GitHub")}
+              data-testid="login-github"
+              onClick={() => {
+                setUser("Jugador_GitHub");
+                setAuthError(null);
+              }}
               style={oauthBtnStyle}
             >
               🐙 Iniciar con GitHub
             </button>
           </div>
+          {authError && (
+            <p data-testid="auth-error" style={{ color: "#f87171", fontSize: "12px", marginTop: "8px" }}>
+              {authError}
+            </p>
+          )}
         </div>
 
-        {/* Comandos Principales */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <button onClick={onStartSolo} style={ffButtonStyle}>
-            ▶ MODO SOLITARIO (CALABOZO)
-          </button>
-
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              type="text"
-              placeholder="Ej: SALA-101"
-              value={lobbyInput}
-              onChange={(e) => setLobbyInput(e.target.value)}
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: "6px",
-                border: "2px solid #ffffff",
-                backgroundColor: "#000830",
-                color: "#ffffff",
-                fontFamily: "inherit",
-                fontSize: "14px",
-              }}
-            />
-            <button
-              onClick={() => onJoinLobby(lobbyInput.trim() || "PUBLIC-1")}
-              style={{ ...ffButtonStyle, padding: "10px 16px" }}
-            >
-              UNIRSE A LOBBY
-            </button>
-          </div>
-
-          <button
-            onClick={onOpenTelemetry}
+        {/* Vista de Sala de Espera (Lobby) o Menú Principal */}
+        {joinedRoom ? (
+          <div
+            data-testid="lobby-room"
             style={{
-              ...ffButtonStyle,
-              background: "linear-gradient(to bottom, #065f46, #064e3b)",
-              marginTop: "6px",
+              background: "rgba(0, 0, 0, 0.4)",
+              border: "2px solid #38bdf8",
+              borderRadius: "8px",
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
             }}
           >
-            📊 TELEMETRÍA (+10,000 PARTIDAS)
-          </button>
-        </div>
+            <h3 style={{ fontSize: "16px", color: "#38bdf8" }}>SALA PÚBLICA: {joinedRoom}</h3>
+            <p data-testid="ready-status" style={{ fontSize: "14px", color: isReady ? "#4ade80" : "#facc15" }}>
+              Estado: {isReady ? "LISTO PARA INCURSIÓN" : "PREPARÁNDOSE..."}
+            </p>
+            <button
+              data-testid="toggle-ready-btn"
+              onClick={() => setIsReady((r) => !r)}
+              style={{
+                ...ffButtonStyle,
+                background: isReady ? "#15803d" : "#b45309",
+              }}
+            >
+              {isReady ? "✓ CAMBIAR A NO LISTO" : "⚡ MARCAR COMO LISTO"}
+            </button>
+            <button
+              data-testid="launch-multiplayer-btn"
+              onClick={() => onJoinLobby(joinedRoom)}
+              style={ffButtonStyle}
+            >
+              ▶ ENTRAR AL CALABOZO
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <button data-testid="play-solo-btn" onClick={onStartSolo} style={ffButtonStyle}>
+              ▶ MODO SOLITARIO (CALABOZO)
+            </button>
+
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input
+                data-testid="lobby-input"
+                type="text"
+                placeholder="Ej: SALA-101"
+                value={lobbyInput}
+                onChange={(e) => setLobbyInput(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "2px solid #ffffff",
+                  backgroundColor: "#000830",
+                  color: "#ffffff",
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                }}
+              />
+              <button
+                data-testid="join-lobby-btn"
+                onClick={() => setJoinedRoom(lobbyInput.trim() || "PUBLIC-1")}
+                style={{ ...ffButtonStyle, padding: "10px 16px" }}
+              >
+                UNIRSE A LOBBY
+              </button>
+            </div>
+
+            <button
+              data-testid="open-telemetry-btn"
+              onClick={handleTelemetryClick}
+              style={{
+                ...ffButtonStyle,
+                background: "linear-gradient(to bottom, #065f46, #064e3b)",
+                marginTop: "6px",
+              }}
+            >
+              📊 TELEMETRÍA (+10,000 PARTIDAS)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
