@@ -1521,11 +1521,11 @@ export const GameCanvas: FC<GameCanvasProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isMobile || isDead || settingsOpen) {
+    if (!isMobile || !showTouchControls || isDead || settingsOpen) {
       touchKeys.current.clear();
       keys.current.clear();
     }
-  }, [isDead, isMobile, settingsOpen]);
+  }, [isDead, isMobile, settingsOpen, showTouchControls]);
 
   useEffect(() => () => {
     if (soundContextRef.current && soundContextRef.current.state !== "closed") {
@@ -2873,9 +2873,9 @@ export const GameCanvas: FC<GameCanvasProps> = ({
         ) ?? null
       )
   );
-  const touchButtonSize = isMobile ? "clamp(38px, 8vmin, 50px)" : "54px";
+  const touchButtonSize = isMobile ? "clamp(30px, 7vmin, 42px)" : "54px";
   const topHudButtonStyle = isMobile
-    ? { ...hudBtnStyle, padding: "6px 8px", fontSize: "10px" }
+    ? { ...hudBtnStyle, padding: "4px 6px", fontSize: "8px" }
     : hudBtnStyle;
 
   return (
@@ -2981,7 +2981,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
             display: isMobile ? "grid" : "flex",
             gridTemplateColumns: isMobile ? "repeat(2, max-content)" : undefined,
             gap: isMobile ? "2px 7px" : "18px",
-            fontSize: isMobile ? "9px" : "13px",
+            fontSize: isMobile ? "7px" : "13px",
             fontWeight: "bold",
             boxShadow: "0 0 20px rgba(220, 38, 38, 0.35)",
           }}
@@ -3004,7 +3004,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
             right: 0,
             background: "rgba(10, 2, 4, 0.92)",
             border: "2px solid #991b1b",
-            padding: isMobile ? "5px" : "8px",
+            padding: isMobile ? "3px" : "8px",
             display: isMobile && isLandscapeMobile ? "none" : "grid",
             gridTemplateColumns: `repeat(${mapBounds.maxX - mapBounds.minX + 1}, ${mapCellSize}px)`,
             gridTemplateRows: `repeat(${mapBounds.maxY - mapBounds.minY + 1}, ${mapCellSize}px)`,
@@ -3057,11 +3057,11 @@ export const GameCanvas: FC<GameCanvasProps> = ({
           style={{
             position: "absolute",
             zIndex: 60,
-            top: isMobile ? 164 : 168,
+            top: isMobile ? (isLandscapeMobile ? 70 : 164) : 168,
             left: "50%",
             transform: "translateX(-50%)",
-            width: "min(94vw, 720px)",
-            padding: 7,
+            width: isMobile && isLandscapeMobile ? "min(68vw, 600px)" : isMobile ? "min(90vw, 600px)" : "min(94vw, 720px)",
+            padding: isMobile ? 4 : 7,
             background: "rgba(9, 7, 12, 0.92)",
             border: `2px solid ${roomOffers.some((offer) => offer.type === "shop_upgrade") ? "#f2b84b" : "#7f6da9"}`,
             boxShadow: "3px 3px 0 #090509",
@@ -3070,30 +3070,30 @@ export const GameCanvas: FC<GameCanvasProps> = ({
             pointerEvents: "none",
           }}
         >
-          <div style={{ color: roomOffers.some((offer) => offer.type === "shop_upgrade") ? "#ffe071" : "#d8c5ff", fontSize: 10, fontWeight: "bold", marginBottom: 5, textAlign: "center" }}>
+          <div style={{ color: roomOffers.some((offer) => offer.type === "shop_upgrade") ? "#ffe071" : "#d8c5ff", fontSize: isMobile ? 7 : 10, fontWeight: "bold", marginBottom: isMobile ? 3 : 5, textAlign: "center" }}>
             {roomOffers.some((offer) => offer.type === "shop_upgrade")
               ? "TIENDA · ACÉRCATE A UNA OFERTA PARA COMPRAR"
               : "MEJORAS DISPONIBLES · AL TOMAR UNA, LAS OTRAS MEJORAS SE BLOQUEAN"}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${roomOffers.length}, minmax(0, 1fr))`, gap: 5 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${roomOffers.length}, minmax(0, 1fr))`, gap: isMobile ? 3 : 5 }}>
             {roomOffers.map((offer) => (
               <article
                 key={offer.id}
                 style={{
                   minWidth: 0,
-                  padding: "5px 6px",
+                  padding: isMobile ? "3px 4px" : "5px 6px",
                   background: "#18131f",
                   border: `1px solid ${offer.type === "shop_upgrade" ? "#9b7b34" : offer.type === "weapon" ? "#357486" : "#59477c"}`,
                 }}
               >
-                <strong style={{ display: "block", color: offer.type === "shop_upgrade" ? "#ffe071" : offer.type === "weapon" ? "#80e3f7" : "#b7f5c0", fontSize: 10, lineHeight: 1.25, overflowWrap: "anywhere" }}>
+                <strong style={{ display: "block", color: offer.type === "shop_upgrade" ? "#ffe071" : offer.type === "weapon" ? "#80e3f7" : "#b7f5c0", fontSize: isMobile ? 7 : 10, lineHeight: 1.15, overflowWrap: "anywhere" }}>
                   {offer.name}
                 </strong>
-                <span style={{ display: "block", color: "#ddd5e4", fontSize: 9, lineHeight: 1.25, marginTop: 3, overflowWrap: "anywhere" }}>
+                <span style={{ display: "block", color: "#ddd5e4", fontSize: isMobile ? 6 : 9, lineHeight: 1.15, marginTop: isMobile ? 2 : 3, overflowWrap: "anywhere" }}>
                   {offer.desc}
                 </span>
                 {offer.cost !== undefined && (
-                  <span style={{ display: "block", color: "#ffe071", fontSize: 9, marginTop: 3 }}>{offer.cost} monedas</span>
+                  <span style={{ display: "block", color: "#ffe071", fontSize: isMobile ? 6 : 9, marginTop: isMobile ? 2 : 3 }}>{offer.cost} monedas</span>
                 )}
               </article>
             ))}
@@ -3235,6 +3235,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
             style={{
               ...bombPadStyle,
               right: 12,
+              ...(isMobile ? { width: "min(120px, 30vw)", minHeight: 32, padding: "4px", fontSize: "9px" } : {}),
               ...(isLandscapeMobile
                 ? { top: 48, bottom: "auto" }
                 : { bottom: "max(170px, calc(env(safe-area-inset-bottom) + 170px))" }),
@@ -3250,6 +3251,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
             style={{
               ...bombPadStyle,
               right: 12,
+              ...(isMobile ? { width: "min(120px, 30vw)", minHeight: 32, padding: "4px", fontSize: "9px" } : {}),
               ...(isLandscapeMobile
                 ? { top: 96, bottom: "auto" }
                 : { bottom: "max(218px, calc(env(safe-area-inset-bottom) + 218px))" }),
