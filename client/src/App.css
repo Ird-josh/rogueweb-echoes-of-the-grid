@@ -1,0 +1,8 @@
+/* Archivo limpio para evitar que Vite centre o recorte el lienzo */
+#root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
