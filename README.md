@@ -10,7 +10,7 @@ Roguelike web client with an Express API, Supabase Auth/PostgreSQL, and Socket.I
    - `http://localhost:5174`
    - `http://127.0.0.1:5173`
    - `http://127.0.0.1:5174`
-3. In **Authentication → Providers**, enable Google and GitHub. In each provider's OAuth application, use Supabase's callback URL shown on that provider page (it has the form `https://<project-ref>.supabase.co/auth/v1/callback`). Supabase keeps the provider secrets; do not put them in the client.
+3. In **Authentication → Providers**, enable Google. In Google's OAuth application, use the Supabase callback URL shown on the Google provider page (it has the form `https://<project-ref>.supabase.co/auth/v1/callback`). Supabase keeps the provider secret; do not put it in the client.
 4. Copy `.env.example` to `.env` at the repository root and `client/.env.example` to `client/.env.local`.
 5. In the root `.env`, set:
    - `SUPABASE_URL` and `SUPABASE_ANON_KEY` from the Supabase project API settings.
@@ -50,6 +50,6 @@ When Render prompts for environment variables, use the values from your private 
 
 Never enter the PostgreSQL password or a Supabase service-role key in a `VITE_` variable. The game's current 8-bit cover of a commercial song is not included in the public deployment; an 8-bit arrangement may still be a copyrighted derivative. The free Render web service may sleep when idle, so its first request and Socket.IO connection can take a little while to wake up.
 
-After Render publishes the static client, copy its `https://...onrender.com` URL into Supabase **Authentication → URL Configuration** as the Site URL and an allowed redirect URL. Google/GitHub sign-in providers should continue using the Supabase callback URL configured in their provider settings. Render injects the client's host into the API's CORS allowlist and the API host into the client's build settings.
+After Render publishes the static client, copy its `https://...onrender.com` URL into Supabase **Authentication → URL Configuration** as the Site URL and an allowed redirect URL. Google sign-in should use the Supabase callback URL configured in Google's provider settings. Render injects the client's host into the API's CORS allowlist and the API host into the client's build settings.
 
 The Supabase database schema must already be applied before the API can become healthy. Check the deployed API at `https://<api-service>.onrender.com/api/health`; it should return `{"status":"ok","database":"ok"}`. Share the static client's URL with players. Both users need access to the deployed API, and the host must remain connected during a co-op run.

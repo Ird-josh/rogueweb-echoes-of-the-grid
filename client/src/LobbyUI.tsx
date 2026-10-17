@@ -188,14 +188,14 @@ export const LobbyUI: FC<LobbyUIProps> = ({
 
   const startSolo = () => onStartSolo(selectedCharacter, newGamePlus);
 
-  const handleOAuthLogin = async (provider: "google" | "github") => {
+  const handleGoogleLogin = async () => {
     if (!supabase) {
       setAuthError("Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en client/.env.local.");
       return;
     }
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: "google",
         options: { redirectTo: window.location.origin },
       });
       if (error) setAuthError(`No se pudo iniciar sesión: ${error.message}`);
@@ -246,7 +246,7 @@ export const LobbyUI: FC<LobbyUIProps> = ({
 
   const handleLobbyEntry = async () => {
     if (!user) {
-      setAuthError("Inicia sesión con Google o GitHub para crear o unirte a un lobby.");
+      setAuthError("Inicia sesión con Google para crear o unirte a un lobby.");
       return;
     }
 
@@ -319,7 +319,7 @@ export const LobbyUI: FC<LobbyUIProps> = ({
 
   const handleTelemetryClick = () => {
     if (!user) {
-      setAuthError("Inicia sesión con Google o GitHub para abrir el historial de partidas.");
+      setAuthError("Inicia sesión con Google para abrir el historial de partidas.");
       return;
     }
     setAuthError(null);
@@ -530,18 +530,10 @@ export const LobbyUI: FC<LobbyUIProps> = ({
             <button
               data-testid="login-google"
               disabled={authLoading}
-              onClick={() => void handleOAuthLogin("google")}
+              onClick={() => void handleGoogleLogin()}
               style={oauthBtnStyle}
             >
               † Pacto Google
-            </button>
-            <button
-              data-testid="login-github"
-              disabled={authLoading}
-              onClick={() => void handleOAuthLogin("github")}
-              style={oauthBtnStyle}
-            >
-              † Pacto GitHub
             </button>
           </div>
           {user && (

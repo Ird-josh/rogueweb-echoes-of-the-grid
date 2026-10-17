@@ -26,6 +26,18 @@ const difficultyProfile = (difficulty: GameSettings["difficulty"]) => {
 const formatControlHint = (...keys: string[]) =>
   keys.map((key) => (key.startsWith("arrow") ? key.slice(5, 6).toUpperCase() : key.toUpperCase())).join("");
 
+const requestLandscapeOrientation = async (): Promise<boolean> => {
+  const orientation = window.screen.orientation;
+  if (typeof orientation?.lock !== "function") return false;
+
+  try {
+    await orientation.lock("landscape");
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 type PixelPalette = Record<string, string>;
 
 const playerSpriteFrames = [
@@ -609,6 +621,8 @@ export const GameCanvas: FC<GameCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isPortraitMobile, setIsPortraitMobile] = useState(false);
+  const [orientationLockFailed, setOrientationLockFailed] = useState(false);
   const [isDead, setIsDead] = useState(false);
   const [hasWon, setHasWon] = useState(false);
   const [roomOffers, setRoomOffers] = useState<RoomOffer[]>([]);
@@ -1485,6 +1499,34 @@ export const GameCanvas: FC<GameCanvasProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!isMobile) {
+      setIsPortraitMobile(false);
+      setOrientationLockFailed(false);
+      return;
+    }
+
+    const portraitQuery = window.matchMedia("(orientation: portrait)");
+    const updateOrientation = () => {
+      setIsPortraitMobile(portraitQuery.matches);
+      if (!portraitQuery.matches) setOrientationLockFailed(false);
+    };
+    const tryLockOrientation = () => {
+      void requestLandscapeOrientation().then((locked) => {
+        setOrientationLockFailed(!locked);
+      });
+    };
+
+    updateOrientation();
+    tryLockOrientation();
+    portraitQuery.addEventListener("change", updateOrientation);
+
+    return () => {
+      portraitQuery.removeEventListener("change", updateOrientation);
+      window.screen.orientation?.unlock();
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
     const checkMobile = () => {
       const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       setIsMobile(isMobileUA || window.innerWidth <= 768);
@@ -1501,15 +1543,18 @@ export const GameCanvas: FC<GameCanvasProps> = ({
     if (!ctx) return;
 
     const handleResize = () => {
-      canvas.width = Math.max(1, Math.floor(window.innerWidth / PIXEL_SCALE));
-      canvas.height = Math.max(1, Math.floor(window.innerHeight / PIXEL_SCALE));
+      const { width, height } = canvas.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, PIXEL_SCALE);
+      const canvasWidth = Math.max(1, Math.floor((width * pixelRatio) / PIXEL_SCALE));
+      const canvasHeight = Math.max(1, Math.floor((height * pixelRatio) / PIXEL_SCALE));
+      if (canvas.width !== canvasWidth) canvas.width = canvasWidth;
+      if (canvas.height !== canvasHeight) canvas.height = canvasHeight;
       ctx.imageSmoothingEnabled = false;
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
       checkMobile();
     };
     handleResize();
     window.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (settingsOpenRef.current) return;
@@ -2746,6 +2791,7 @@ export const GameCanvas: FC<GameCanvasProps> = ({
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", clearPressedKeys);
@@ -3060,6 +3106,55 @@ export const GameCanvas: FC<GameCanvasProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {isMobile && isPortraitMobile && !isDead && !hasWon && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rotate-device-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+            padding: 24,
+            background: "rgba(5, 0, 2, 0.96)",
+            color: "#fff",
+            textAlign: "center",
+            fontFamily: "'Courier New', Courier, monospace",
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: 48 }}>📱 ↻</span>
+          <h2 id="rotate-device-title" style={{ color: "#ffe28a", fontSize: 22, margin: 0 }}>
+            Gira tu teléfono
+          </h2>
+          <p style={{ maxWidth: 320 }}>
+            Esta partida se disfruta mejor en horizontal. Gira el dispositivo para continuar.
+          </p>
+          {orientationLockFailed && (
+            <>
+              <p style={{ color: "#fca5a5", fontSize: 13 }}>
+                Este navegador no pudo cambiar la orientación automáticamente.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  void requestLandscapeOrientation().then((locked) => {
+                    setOrientationLockFailed(!locked);
+                  });
+                }}
+                style={hudBtnStyle}
+              >
+                INTENTAR DE NUEVO
+              </button>
+            </>
+          )}
         </div>
       )}
 
